@@ -13,6 +13,7 @@ import pyspark.sql.functions as F
 from pyspark.sql.functions import col
 from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 
+from utils.helper import generate_first_of_month_dates
 import utils.data_processing_bronze_table
 import utils.data_processing_silver_table
 import utils.data_processing_gold_table
@@ -39,29 +40,29 @@ end_date_str = "2024-12-01"
 
 """
 
-# generate list of dates to process
-def generate_first_of_month_dates(start_date_str, end_date_str):
-    # Convert the date strings to datetime objects
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+# # generate list of dates to process
+# def generate_first_of_month_dates(start_date_str, end_date_str):
+#     # Convert the date strings to datetime objects
+#     start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+#     end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
     
-    # List to store the first of month dates
-    first_of_month_dates = []
+#     # List to store the first of month dates
+#     first_of_month_dates = []
 
-    # Start from the first of the month of the start_date
-    current_date = datetime(start_date.year, start_date.month, 1)
+#     # Start from the first of the month of the start_date
+#     current_date = datetime(start_date.year, start_date.month, 1)
 
-    while current_date <= end_date:
-        # Append the date in yyyy-mm-dd format
-        first_of_month_dates.append(current_date.strftime("%Y-%m-%d"))
+#     while current_date <= end_date:
+#         # Append the date in yyyy-mm-dd format
+#         first_of_month_dates.append(current_date.strftime("%Y-%m-%d"))
         
-        # Move to the first of the next month
-        if current_date.month == 12:
-            current_date = datetime(current_date.year + 1, 1, 1)
-        else:
-            current_date = datetime(current_date.year, current_date.month + 1, 1)
+#         # Move to the first of the next month
+#         if current_date.month == 12:
+#             current_date = datetime(current_date.year + 1, 1, 1)
+#         else:
+#             current_date = datetime(current_date.year, current_date.month + 1, 1)
 
-    return first_of_month_dates
+#     return first_of_month_dates
 
 
 # Build label engineering pipeline 
@@ -77,7 +78,7 @@ def build_label_pipeline(spark, start_date_str="2023-01-01", end_date_str="2024-
 
     # run bronze backfill
     for date_str in dates_str_lst:
-        utils.data_processing_bronze_table.process_bronze_table(date_str, bronze_loan_directory, spark)
+        utils.data_processing_bronze_table.process_label_bronze_table(date_str, bronze_loan_directory, spark)
 
 
     # create SILVER datalake

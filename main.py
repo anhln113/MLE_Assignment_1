@@ -30,11 +30,12 @@ def main():
     # set up config
     snapshot_date_str = "2023-01-01"
     start_date_str = "2023-01-01"
-    end_date_str = "2024-12-01"    
+    label_end_date_str = "2024-12-01"    
+    feature_end_date_str = "2025-01-01" 
 
     # start label pipeline
     print("Starting label pipeline...")
-    build_label_pipeline(spark, start_date_str, end_date_str)
+    build_label_pipeline(spark, start_date_str, label_end_date_str)
     print("Label pipeline completed.")
 
 
