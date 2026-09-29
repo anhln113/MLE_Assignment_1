@@ -451,3 +451,93 @@ def process_feature_financials_silver_table(
     )
 
     return df
+
+
+# Process features_clickstream silver tables for feature pipeline
+def process_feature_clickstream_silver_table(
+    snapshot_date_str,
+    bronze_clickstream_directory,
+    silver_clickstream_directory,
+    spark,
+):
+    # Validate input date format early
+    datetime.strptime(snapshot_date_str, "%Y-%m-%d")
+    os.makedirs(silver_clickstream_directory, exist_ok=True)
+
+    # ---------------------------------------------------------
+    # 1. Load Bronze snapshot as strings
+    # ---------------------------------------------------------
+    partition_name = (
+        "bronze_feature_clickstream_"
+        + snapshot_date_str.replace("-", "_")
+        + ".csv"
+    )
+
+    filepath = os.path.join(bronze_clickstream_directory, partition_name)
+
+    df = spark.read.csv(filepath, header=True, inferSchema=False)
+
+    bronze_row_count = df.count()
+    print("loaded from:", filepath, "row count:", bronze_row_count)
+
+    if bronze_row_count == 0:
+        print(
+            f"Skipping {snapshot_date_str}: "
+            "Bronze clickstream partition is empty."
+        )
+        return None
+    # ---------------------------------------------------------
+    # 2. Apply Silver cleaning / schema enforcement
+    # ---------------------------------------------------------
+    feature_cols = [f"fe_{i}" for i in range(1, 21)]
+
+    # Parse anonymised clickstream features.
+    # Negative values are intentionally retained.
+    for column_name in feature_cols:
+        df = df.withColumn(
+            column_name,
+            F.expr(
+                f"try_cast(trim(`{column_name}`) as int)"
+            )
+        )
+
+    # Enforce date type
+    df = df.withColumn(
+        "snapshot_date",
+        F.to_date(F.trim(F.col("snapshot_date")), "yyyy-MM-dd")
+    )
+
+    df = df.withColumn(
+        "customer_id",
+        F.trim(
+            F.col("Customer_ID")
+            ).cast(StringType()))
+
+    # Keep only columns required downstream
+    df = df.select(
+        "customer_id",
+        *feature_cols,
+        "snapshot_date"
+    )
+    
+    # ---------------------------------------------------------
+    # 3. Save Silver partition
+    # ---------------------------------------------------------
+    partition_name = (
+        "silver_feature_clickstream_"
+        + snapshot_date_str.replace("-", "_")
+        + ".parquet"
+    )
+
+    output_path = os.path.join(
+        silver_clickstream_directory,
+        partition_name
+    )
+
+    df.write.mode("overwrite").parquet(output_path)
+
+    print(
+        "saved to:",
+        output_path
+    )
+    return df

@@ -18,17 +18,11 @@ import utils.data_processing_bronze_table
 import utils.data_processing_silver_table
 import utils.data_processing_gold_table
 
-from utils.data_processing_silver_table import (
-    process_silver_attributes,
-    process_silver_financials,
-    process_silver_clickstream
-)
-
 
 def build_feature_pipeline(spark, start_date_str, feature_end_date_str):
     # Generate monthly snapshot dates for the requested backfill window
-    dates_str_lst = generate_first_of_month_dates(start_date_str, feature_end_date_str)
-    print("Date list: \n", dates_str_lst)
+    date_str_lst = generate_first_of_month_dates(start_date_str, feature_end_date_str)
+    print("Date list: \n", date_str_lst)
     
     # =====================
     # BRONZE
@@ -59,19 +53,19 @@ def build_feature_pipeline(spark, start_date_str, feature_end_date_str):
     silver_jobs = {
             "attributes": utils.data_processing_silver_table.process_feature_attributes_silver_table,
             "financials": utils.data_processing_silver_table.process_feature_financials_silver_table,
+            "clickstream": utils.data_processing_silver_table.process_feature_clickstream_silver_table
         }
 
     for table_name, silver_processor in silver_jobs.items():
         bronze_directory = f"datamart/bronze/{table_name}"
         silver_directory = f"datamart/silver/{table_name}"
 
-        for snapshot_date in dates_str_lst:
+        for snapshot_date in date_str_lst:
             silver_processor(
                 snapshot_date,
                 bronze_directory,
                 silver_directory,
-                spark,
+                spark
             )
 
-    # Clickstream Silver can be added to silver_jobs after its EDA-derived
-    # cleaning logic is implemented.
+
