@@ -14,8 +14,8 @@ import argparse
 from pyspark.sql.functions import col
 from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 
-
-def process_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_daily_directory, spark):
+# Process lms silver tables for label
+def process_label_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_daily_directory, spark):
     # prepare arguments
     snapshot_date = datetime.strptime(snapshot_date_str, "%Y-%m-%d")
     
@@ -60,4 +60,116 @@ def process_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_da
     #           compression='gzip')
     print('saved to:', filepath)
     
+    return df
+
+
+# Process features_attributes silver tables for feature pipeline
+def process_feature_attributes_silver_table(snapshot_date_str, bronze_attributes_directory, silver_attributes_directory, spark):
+    # prepare arguments
+    snapshot_date = datetime.strptime(snapshot_date_str, "%Y-%m-%d")
+
+    # create silver directory if not yet exist
+    os.makedirs(silver_attributes_directory, exist_ok=True)
+
+    # connect to bronze table
+    partition_name = ("bronze_feature_attributes_" + snapshot_date_str.replace("-", "_") + ".csv")
+
+    filepath = os.path.join(bronze_attributes_directory, partition_name)
+
+    # Keep Bronze values as strings first; enforce schema in Silver
+    df = spark.read.csv(filepath, header=True, inferSchema=False)
+    print("loaded from:", filepath, "row count:", df.count())
+
+
+    # ---------------------------------------------------------
+    # clean Age column
+    # ---------------------------------------------------------
+
+    # remove trailing "_" and cast to integer
+    df = df.withColumn(
+        "age",
+        F.regexp_replace(
+            F.trim(F.col("Age")),
+            r"_+$",
+            ""
+        ).cast(IntegerType())
+    )
+
+    # invalid ages (<0 or > 100) -> null
+    df = df.withColumn(
+        "age",
+        F.when(
+            (F.col("age") < 0) |
+            (F.col("age") > 100),
+            F.lit(None).cast(IntegerType())
+        ).otherwise(F.col("age"))
+    )
+
+
+    # ---------------------------------------------------------
+    # clean Occupation column
+    # ---------------------------------------------------------
+
+    df = df.withColumn(
+        "occupation",
+        F.when(
+            F.trim(F.col("Occupation")) == "_______",
+            F.lit(None).cast(StringType())
+        ).otherwise(
+            F.trim(F.col("Occupation"))
+        )
+    )
+
+    # ---------------------------------------------------------
+    # enforce schema
+    # ---------------------------------------------------------
+
+    df = (
+        df
+        .withColumn(
+            "customer_id",
+            F.col("Customer_ID").cast(StringType())
+        )
+        .withColumn(
+            "snapshot_date",
+            F.col("snapshot_date").cast(DateType())
+        )
+    )
+
+    # ---------------------------------------------------------
+    # keep columns required for downstream feature pipeline
+    # Name and SSN are excluded as they are PII and are not required for feature generation
+    # ---------------------------------------------------------
+
+    df = df.select(
+        "customer_id",
+        "age",
+        "occupation",
+        "snapshot_date"
+    )
+
+    # ---------------------------------------------------------
+    # save silver table
+    # ---------------------------------------------------------
+
+    partition_name = (
+        "silver_feature_attributes_"
+        + snapshot_date_str.replace("-", "_")
+        + ".parquet"
+    )
+
+    filepath = os.path.join(
+        silver_attributes_directory,
+        partition_name
+    )
+
+    df.write.mode("overwrite").parquet(filepath)
+
+    print(
+        "saved to:",
+        filepath,
+        "row count:",
+        df.count()
+    )
+
     return df

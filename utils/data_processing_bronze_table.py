@@ -47,11 +47,12 @@ def process_feature_bronze_table(snapshot_date_str, source_file_path, table_name
     os.makedirs(bronze_directory, exist_ok=True)
 
     # load data - IRL ingest from back end source system
-    df = spark.read.csv(file_path, header=True, inferSchema=True).filter(col('snapshot_date') == snapshot_date)
+    # Preserve feature values as raw strings; enforce types in Silver.
+    df = spark.read.csv(file_path, header=True, inferSchema=False).filter(col('snapshot_date') == snapshot_date_str)
     print(snapshot_date_str + ' row count:', df.count())
     
     # save bronze table to datamart - IRL connect to database to write
-    partition_name = f"bronze_feature_{table_name}_{snapshot_date_str.replace('-','_')}.csv"
+    partition_name = f"bronze_{table_name}_{snapshot_date_str.replace('-','_')}.csv"
     filepath = os.path.join(bronze_directory, partition_name)
     df.toPandas().to_csv(filepath, index=False)
     print('saved to:', filepath)

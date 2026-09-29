@@ -14,6 +14,9 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 
 from utils.label_pipeline import build_label_pipeline
+from utils.features_pipeline import build_feature_pipeline
+from utils.data_processing_bronze_table import process_feature_bronze_table
+from utils.helper import generate_first_of_month_dates
 
 
 
@@ -40,7 +43,9 @@ def main():
 
 
     # Start feature pipeline
-
+    print("Starting feature pipeline...")
+    build_feature_pipeline(spark, start_date_str, feature_end_date_str)
+    print("Feature pipeline completed.")
 
 if __name__ == "__main__":
     main()
