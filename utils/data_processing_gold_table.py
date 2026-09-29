@@ -399,18 +399,46 @@ def process_features_gold_table(
             ["customer_id", "snapshot_date"],
             "left"
         )
-        .join(
-            gold_clickstream_df,
-            ["customer_id", "snapshot_date"],
-            "left"
-        )
-        .fillna(
-            {
+    )
+
+    if gold_clickstream_df is not None:
+        gold_df = (
+            gold_df
+            .join(
+                gold_clickstream_df,
+                ["customer_id", "snapshot_date"],
+                "left"
+            )
+            .fillna({
                 "has_clickstream": 0,
                 "has_full_clickstream_3m_history": 0
-            }
+            })
         )
-    )
+
+    else:
+        # No clickstream snapshot for this month
+        gold_df = (
+            gold_df
+            .withColumn(
+                "has_clickstream",
+                F.lit(0).cast(IntegerType())
+            )
+            .withColumn(
+                "has_full_clickstream_3m_history",
+                F.lit(0).cast(IntegerType())
+            )
+        )
+
+        for feature_name in CLICKSTREAM_FEATURE_COLS:
+            gold_df = gold_df.withColumn(
+                feature_name,
+                F.lit(None).cast("double")
+            )
+
+            gold_df = gold_df.withColumn(
+                f"{feature_name}_mean_3m",
+                F.lit(None).cast("double")
+            )
 
     _check_unique_customer_snapshot(
         gold_df,
