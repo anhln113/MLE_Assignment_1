@@ -69,3 +69,26 @@ def build_feature_pipeline(spark, start_date_str, feature_end_date_str):
             )
 
 
+    # =====================
+    # GOLD FEATURE STORE
+    # =====================
+
+    silver_attributes_directory = "datamart/silver/attributes"
+    silver_financials_directory = "datamart/silver/financials"
+    silver_clickstream_directory = "datamart/silver/clickstream"
+    gold_feature_store_directory = "datamart/gold/feature_store"
+
+    if not os.path.exists(gold_feature_store_directory):
+        os.makedirs(gold_feature_store_directory)
+
+    for snapshot_date in date_str_lst:
+        utils.data_processing_gold_table.process_features_gold_table(
+            snapshot_date,
+            silver_attributes_directory,
+            silver_financials_directory,
+            silver_clickstream_directory,
+            gold_feature_store_directory,
+            spark
+        )
+
+    print("Feature pipeline completed")
