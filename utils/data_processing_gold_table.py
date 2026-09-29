@@ -206,9 +206,14 @@ def _build_gold_clickstream(
     )
 
     if not os.path.exists(current_path):
-        raise FileNotFoundError(
-            f"Current clickstream Silver partition not found: {current_path}"
+        # raise FileNotFoundError(
+        #     f"Current clickstream Silver partition not found: {current_path}"
+        # )
+        print(
+            f"No clickstream Silver partition for {snapshot_date_str}: "
+            "clickstream features will be NULL, has_clickstream = 0"
         )
+        return None
 
     current_clickstream_df = (
         spark.read.parquet(current_path)

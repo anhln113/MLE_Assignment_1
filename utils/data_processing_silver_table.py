@@ -72,7 +72,7 @@ def process_feature_attributes_silver_table(snapshot_date_str, bronze_attributes
     os.makedirs(silver_attributes_directory, exist_ok=True)
 
     # connect to bronze table
-    partition_name = ("bronze_feature_attributes_" + snapshot_date_str.replace("-", "_") + ".csv")
+    partition_name = ("bronze_attributes_" + snapshot_date_str.replace("-", "_") + ".csv")
 
     filepath = os.path.join(bronze_attributes_directory, partition_name)
 
@@ -192,7 +192,7 @@ def process_feature_financials_silver_table(
     os.makedirs(silver_financials_directory, exist_ok=True)
 
     partition_name = (
-        "bronze_feature_financials_"
+        "bronze_financials_"
         + snapshot_date_str.replace("-", "_")
         + ".csv"
     )
@@ -468,7 +468,7 @@ def process_feature_clickstream_silver_table(
     # 1. Load Bronze snapshot as strings
     # ---------------------------------------------------------
     partition_name = (
-        "bronze_feature_clickstream_"
+        "bronze_clickstream_"
         + snapshot_date_str.replace("-", "_")
         + ".csv"
     )
